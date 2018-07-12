@@ -1,0 +1,247 @@
+﻿<h2>CinC Hotels</h2>
+
+
+<div id="main-btn-grp">
+    <button class="btn btn-primary btn-block" id="findRooms">Check Availability of Rooms</button>
+    <button class="btn btn-primary btn-block" id="checkReservation">View/Change Reservation</button>
+</div>
+
+<form method="post" id="reservationForm" style="display: none;">
+    <div>
+        <label>Check-in Date</label><br />
+        <input class="form-control" id="checkin-date" type="date" style="display:inline-block"/>
+        <span class="text-danger error-msg" style="display: none;">Please select check-in date</span>
+        <br />
+    </div>
+    <br />  
+    <div>
+        <label>Check-out Date</label><br />
+        <input class="form-control" id="checkout-date" type="date" style="display:inline-block" />
+        <span class="text-danger error-msg" style="display: none;">Please select check-out date</span>
+        <br />
+    </div>
+    <br />  
+    <label>Room Type</label><br />
+    <select class="form-control" id="room-type">
+        <option value="one">One</option>
+        <option value="two">Two</option>
+    </select>
+    <span style="display: none;">Please select the room type</span>
+    <br />
+
+    <input class="btn btn-primary" type="submit" value="Check availability" />
+    <button class="btn btn-info" id="goBack">Go Back to Main Screen</button>
+</form>
+
+<div id="room-unavailable" style="display: none;">
+    <h2 class="text-danger"><span class="glyphicon glyphicon-warning-sign"></span> We are sorry but there is no availability for the following data.</h2>
+</div>
+
+<button class="btn btn-info" id="goBackcheck" style="display: none;">Go Back to Main Screen</button>
+
+<div id="room-available" style="display: none;">
+    <h2 class="text-success"><span class="glyphicon glyphicon-thumbs-up"></span> Woohoo ! We have availability for the following data.</h2>
+</div>
+<ul id="groceryList"></ul>
+
+
+@section scripts {
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+
+
+           // getItems();
+
+            $("#findRooms").click(function () {
+                $("#reservationForm").slideDown();
+
+                $("#reservationForm input:text").val("");
+                $("#checkReservation").hide();
+                $(this).hide();
+
+            });
+
+            $("#goBack").click(function () {
+              
+                $("#reservationForm").hide();
+                $("#main-btn-grp").show();
+  
+            });
+
+            $("#goBackcheck").click(function () {
+
+                $(this).parent().hide();
+                $("#reservationForm").slideDown();
+            });
+
+            $(".confirm-reservation").click(function () {
+
+                debugger;
+            });
+
+            $("#reservationForm input:submit").click(function () {
+
+                var request = {
+                    CheckInDate: $("#checkin-date").val(),
+                    CheckOutDate: $("#checkout-date").val(),
+                    RoomType: $("#room-type").val()
+                };
+
+                $('.error-msg').hide();
+
+                if (!request.CheckInDate) {
+                    $("#checkin-date").next().show();
+                    return false;
+                }
+
+                if (!request.CheckOutDate) {
+                    $("#checkout-date").next().show();
+                    return false;
+                }
+
+
+                $.ajax({
+                    url: '/ReservationJquery/check',
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    method: 'POST',
+                    data: JSON.stringify(request)
+                }).done(function (data) {
+                    
+                    debugger;
+                    if(data.Count > 0)
+                    {
+                        $("#reservationForm").hide();
+                        $("h3").remove();
+                        
+                        $('#room-unavailable').append('<h3><strong>Check-in Date</strong> : ' + data.CheckInDate + '</h3>');
+                        $('#room-unavailable').append('<h3><strong>Check-out Date</strong> : ' + data.CheckOutDate + '</h3>');
+                        $('#room-unavailable').append('<h3><strong>Room-Type</strong> : ' + data.RoomType + '</h3>');
+                        $('#room-unavailable').append($('#goBackcheck'));
+                        $("#room-unavailable").show();
+                        $('#goBackcheck').show();
+                    }
+                    else {
+                        $("#reservationForm").hide();
+                        $("h3").remove();
+                        
+                        $('.confirm-reservation').remove();
+                        $('#room-available').append('<h3><strong>Check-in Date</strong> : ' + data.CheckInDate + '</h3>');
+                        $('#room-available').append('<h3><strong>Check-out Date</strong> : ' + data.CheckOutDate + '</h3>');
+                        $('#room-available').append('<h3><strong>Room-Type</strong> : ' + data.RoomType + '</h3></br>');
+                        $('#room-available').append('<button type="button" class="btn btn-success confirm-reservation" style="margin-right: 10px;">Confirm Reservation</button>');
+                        $('#room-available').append($('#goBackcheck'));
+
+                        $("#room-available").show();
+                        $('#goBackcheck').show();
+                    }
+                    //getItems();
+                    //$("#newItemForm").hide();
+                   // $("#bookList").append(groceryLineItem(book));
+                   // $("#addNewItem").show();
+                }).error(function (xhr) {
+                    
+                    if (xhr.status == 400) {
+                        alert("Please enter valid information");
+                    } else {
+                        alert("There a problem checking your reservation");
+                    }
+                });
+
+                return false;
+            });
+
+            $("#groceryList").on("click", "a", function () {
+
+
+                var button = $(this);
+                var id = $(this).attr('book-id');
+
+                if (this.id == "deleteBook") {
+                    $.ajax({
+                        url: '/ItemsJquery/delete/' + id,
+                        contentType: 'application/json',
+                        method: "POST"
+                    }).done(function (a, b, c) {
+                        console.log(a, b, c);
+                        // $(button).parents('li').remove();
+                        getItems();
+                    }).error(function (xhr) {
+                        console.log(xhr);
+                        alert("There was a problem deleting your book");
+                    });
+                }
+                else if (this.id == "markComplete") {
+                    $.ajax({
+                        url: '/ItemsJquery/markcomplete/' + id,
+                        contentType: 'application/json',
+                        method: "POST"
+                    }).done(function (a, b, c) {
+                        console.log(a, b, c);
+                        //$(button).parents('li').css({ "background-color": "#ffffff", "opacity": "0.4" });
+                        //$(button).remove();
+                        getItems();
+
+                    }).error(function (xhr) {
+                        console.log(xhr);
+                        alert("There was a problem deleting your book");
+                    });
+                }
+            });
+
+        });
+
+        function getItems() {
+            $("#groceryList").html('');
+            $.ajax({
+                url: '/ItemsJquery/display',
+                dataType: 'json',
+                contentType: 'application/json',
+                method: 'GET'
+            }).done(function (items) {
+
+                $.each(items, function (idx, item) {
+                    $("#groceryList").append(groceryLineItem(item));
+                });
+
+            }).error(function () {
+                console.log("error");
+            });
+        }
+
+
+        function groceryLineItem(item) {
+
+
+
+                var li = $('<li id ="'+item.Id+'"></li>');
+                var name = $('<strong><em>' + item.Name + '</em></strong>');
+                var quantity = $(' <div>Quantity :<em>' + item.Quantity + '</em></div>');
+                // var date = new Date(item.MarkedAsCompleted);
+                var date = new Date(parseInt(item.MarkedAsCompleted.substr(6)));
+                if (item.PickedUp) {
+                    li.addClass("completed-item").css({ "background-color": "#ffffff", "opacity": "0.4" });
+                var datediv = $('<div>Picked on: <em>' + date + '</em></div>');
+                }
+
+                var deleteButton = $('<div> <a id ="deleteBook" book-id="' + item.Id + '" href="#">Delete</a></div>');
+            li.append(name);
+
+            li.append(quantity);
+            li.append(datediv);
+            li.append(deleteButton);
+            if (!item.PickedUp) {
+                var markasCompleteButton = $('<div> <a id ="markComplete" book-id="' + item.Id + '" href="#">Mark as Picked</a></div>');
+                li.append(markasCompleteButton);
+            }
+
+
+
+            return li;
+        }
+
+    </script>
+
+}

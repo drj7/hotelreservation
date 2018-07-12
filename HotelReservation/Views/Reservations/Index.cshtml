@@ -1,0 +1,168 @@
+﻿<h2>My Grocery List</h2>
+
+<button class="btn btn-primary" id="addNewItem">Add New Grocery-Item</button>
+
+<form method="post" id="newItemForm" style="display: none;">
+
+    <label>Grocery Item</label><br />
+    <input id="itemTitle" />
+    <span style="display: none;">Please enter a name</span>
+    <br />
+
+    <label>Quantity</label><br />
+    <input id="itemQuantity" />
+    <span style="display: none;">Please enter the quantity</span>
+    <br />
+
+    <input class="btn-primary" type="submit" value="Save Item in the GroceryList" />
+</form>
+
+<ul id="groceryList"></ul>
+
+
+@section scripts {
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+
+
+            getItems();
+
+            $("#addNewItem").click(function () {
+                $("#newItemForm").slideDown();
+
+                $("#newItemForm input:text").val("");
+
+                $(this).hide();
+            });
+
+            $("#newItemForm input:submit").click(function () {
+
+
+
+                var request = {
+                    Name: $("#itemTitle").val(),
+                    Quantity: $("#itemQuantity").val()
+                };
+
+                if (!request.Name) {
+                    $("#itemTitle").next().show();
+                    return false;
+                }
+
+
+                $.ajax({
+                    url: '/ItemsJquery/create',
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    method: 'POST',
+                    data: JSON.stringify(request)
+                }).done(function (book) {
+                    getItems();
+                    $("#newItemForm").hide();
+                   // $("#bookList").append(groceryLineItem(book));
+                    $("#addNewItem").show();
+                }).error(function (xhr) {
+                    debugger;
+                    if (xhr.status == 400) {
+                        alert("Please enter valid information");
+                    } else {
+                        alert("There a problem saving your book");
+                    }
+                });
+
+                return false;
+            });
+
+            $("#groceryList").on("click", "a", function () {
+
+
+                var button = $(this);
+                var id = $(this).attr('book-id');
+
+                if (this.id == "deleteBook") {
+                    $.ajax({
+                        url: '/ItemsJquery/delete/' + id,
+                        contentType: 'application/json',
+                        method: "POST"
+                    }).done(function (a, b, c) {
+                        console.log(a, b, c);
+                        // $(button).parents('li').remove();
+                        getItems();
+                    }).error(function (xhr) {
+                        console.log(xhr);
+                        alert("There was a problem deleting your book");
+                    });
+                }
+                else if (this.id == "markComplete") {
+                    $.ajax({
+                        url: '/ItemsJquery/markcomplete/' + id,
+                        contentType: 'application/json',
+                        method: "POST"
+                    }).done(function (a, b, c) {
+                        console.log(a, b, c);
+                        //$(button).parents('li').css({ "background-color": "#ffffff", "opacity": "0.4" });
+                        //$(button).remove();
+                        getItems();
+
+                    }).error(function (xhr) {
+                        console.log(xhr);
+                        alert("There was a problem deleting your book");
+                    });
+                }
+            });
+
+        });
+
+        function getItems() {
+            $("#groceryList").html('');
+            $.ajax({
+                url: '/ItemsJquery/display',
+                dataType: 'json',
+                contentType: 'application/json',
+                method: 'GET'
+            }).done(function (items) {
+
+                $.each(items, function (idx, item) {
+                    $("#groceryList").append(groceryLineItem(item));
+                });
+
+            }).error(function () {
+                console.log("error");
+            });
+        }
+
+
+        function groceryLineItem(item) {
+
+
+
+                var li = $('<li id ="'+item.Id+'"></li>');
+                var name = $('<strong><em>' + item.Name + '</em></strong>');
+                var quantity = $(' <div>Quantity :<em>' + item.Quantity + '</em></div>');
+                // var date = new Date(item.MarkedAsCompleted);
+                var date = new Date(parseInt(item.MarkedAsCompleted.substr(6)));
+                if (item.PickedUp) {
+                    li.addClass("completed-item").css({ "background-color": "#ffffff", "opacity": "0.4" });
+                var datediv = $('<div>Picked on: <em>' + date + '</em></div>');
+                }
+
+                var deleteButton = $('<div> <a id ="deleteBook" book-id="' + item.Id + '" href="#">Delete</a></div>');
+            li.append(name);
+
+            li.append(quantity);
+            li.append(datediv);
+            li.append(deleteButton);
+            if (!item.PickedUp) {
+                var markasCompleteButton = $('<div> <a id ="markComplete" book-id="' + item.Id + '" href="#">Mark as Picked</a></div>');
+                li.append(markasCompleteButton);
+            }
+
+
+
+            return li;
+        }
+
+    </script>
+    }
